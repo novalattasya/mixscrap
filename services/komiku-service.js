@@ -145,16 +145,46 @@ module.exports.getMangaByParam = async (req, res) => {
     // Load HTML we fetched in the previous line
     const $ = cheerio.load(data);
 
-    const mangaTitle = $("#Judul h1").text().trim();
+    // --- helper to read key/value from the info table (.inftable) ---
+    const getInfoFromTable = (label) => {
+      let value = "";
+      $("table.inftable tr").each((i, el) => {
+        const tds = $(el).find("td");
+        if (tds.length < 2) return; // skip malformed row
+        const key = $(tds[0]).text().replace(/\s+/g, " ").trim().toLowerCase();
+        if (key.includes(label.toLowerCase())) {
+          value = $(tds[1]).text().replace(/\s+/g, " ").trim();
+          return false; // break out of .each
+        }
+      });
+      return value;
+    };
+    // ----------------------------------------------------------------
+
+    // --- TITLE: STRICTLY take from "Judul Komik" in the inftable only ---
+    // If "Judul Komik" row is not present, title will be empty string.
+    const mangaTitle = getInfoFromTable("Judul Komik") || "";
+    // -----------------------------------------------------------------
+
     const mangaThumbnail = $(".ims img").attr("src");
     const mangaGenre = [];
-    const mangaSynopsis = $('#Sinopsis').find('p').first().text().replace(/\s+/g, ' ').trim();
+    // keep existing synopsis extraction (will pick first p under #Sinopsis)
+    const mangaSynopsis =
+      $('#Sinopsis').find("p").first().text().replace(/\s+/g, " ").trim();
     const mangaChapters = [];
     const mangaSimilar = [];
+
+    // extract by exact known labels from HTML you provided
+    const mangaAuthor = getInfoFromTable("Pengarang") || "";
+    const mangaStatus = getInfoFromTable("Status") || "";
+    const mangaType = getInfoFromTable("Jenis Komik") || getInfoFromTable("Tipe") || "";
+
+    // --- genre (existing) ---
     $('.genre li span[itemprop="genre"]').each((i, el) => {
-      mangaGenre.push($(el).text().replace(/\s+/g,' ').trim());
+      mangaGenre.push($(el).text().replace(/\s+/g, " ").trim());
     });
 
+    // --- chapters (existing logic) ---
     $("#Daftar_Chapter tbody tr").each((i, el) => {
       if (i > 0) {
         const chapterNumber = $(el).find(".judulseries").text().trim();
@@ -189,7 +219,7 @@ module.exports.getMangaByParam = async (req, res) => {
       trimmedTitle = mangaTitle.trim();
     }
 
-    /// Similar mangas
+    /// Similar mangas (existing)
     $("#Spoiler")
       .find(".grd")
       .each((i, el) => {
@@ -222,11 +252,14 @@ module.exports.getMangaByParam = async (req, res) => {
 
     jsonResult = {
       data: {
-        title: trimmedTitle,
+        title: trimmedTitle, // will be empty string if "Judul Komik" not found
         param: param,
         thumbnail: mangaThumbnail?.split("?")[0],
         genre: mangaGenre,
         synopsis: mangaSynopsis,
+        author: mangaAuthor,
+        status: mangaStatus,
+        type: mangaType,
         chapters: mangaChapters,
         similars: mangaSimilar,
       },
@@ -243,6 +276,7 @@ module.exports.getMangaByParam = async (req, res) => {
     };
   }
 };
+
 
 module.exports.getMangaByParamBatch = async (req, res) => {
   const body = req.body;
