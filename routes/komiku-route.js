@@ -4,6 +4,7 @@ const komikuService = require("../services/komiku-service.js");
 
 router.get("/", (req, res) => komikuService.getLatestManga(req, res));
 router.post("/", (req, res) => komikuService.getMangaByParamBatch(req, res));
+router.get("/daftar-komik", (req, res) => komikuService.getDaftarKomik(req, res));
 router.get("/:param", (req, res) => komikuService.getMangaByParam(req, res));
 router.get("/chapter/:param", (req, res) =>
   komikuService.getMangaChapterByParam(req, res)

@@ -126,6 +126,109 @@ module.exports.getLatestManga = async (req, res) => {
   }
 };
 
+module.exports.getDaftarKomik = async (req, res) => {
+  const page = req.query.page || 1;
+  const url = req.protocol + "://" + req.get("host") + req.baseUrl;
+
+  /// Crawl URL
+  let crawlUrl = `https://komiku.org/daftar-komik/page/${page}/`;
+  if (page == 1) {
+    crawlUrl = `https://komiku.org/daftar-komik/`;
+  }
+
+  /// Json Result
+  let jsonResult = {};
+
+  try {
+    /// Get URL
+    const { data } = await axios.get(crawlUrl, {
+      proxy: false,
+      headers: { referer: "https://komiku.org/" },
+    });
+
+    // Load HTML we fetched in the previous line
+    const $ = cheerio.load(data);
+
+    /// Manga list
+    let mangaList = [];
+
+    // Try .ls4 first (Daftar Komik style)
+    let elements = $(".ls4");
+    if (elements.length === 0) {
+      // Fallback to .bge (Latest style)
+      elements = $(".bge");
+    }
+
+    elements.each((i, el) => {
+      let mangaTitle = $(el).find("h4").text();
+      if (!mangaTitle) {
+        mangaTitle = $(el).find(".kan").find("h3").text();
+      }
+
+      let mangaDescription = $(el).find(".kan").find("p").text();
+
+      let mangaThumbnail = $(el).find("img").attr("data-src");
+      if (!mangaThumbnail) {
+        mangaThumbnail = $(el).find("img").attr("src");
+      }
+
+      let mangaParams = $(el).find("a").eq(0).attr("href")?.split("/") ?? [];
+      let mangaParam = mangaParams[4];
+      if (!mangaParam || mangaParam.length === 0) {
+        // Handle case where href is like /manga/slug/
+        mangaParam = mangaParams[2];
+      }
+
+      const latestChapter = $(el)
+        .find(".kan")
+        .find(".new1")
+        .last()
+        .find("span")
+        .last()
+        .text();
+
+      let trimmedTitle = mangaTitle;
+      if (mangaTitle) {
+        trimmedTitle = mangaTitle.trim();
+      }
+
+      let trimmedDescription = mangaDescription;
+      if (mangaDescription) {
+        trimmedDescription = mangaDescription.trim().replace("  ", " ");
+      }
+
+      mangaList.push({
+        title: trimmedTitle,
+        description: trimmedDescription,
+        latest_chapter: latestChapter,
+        thumbnail: mangaThumbnail?.split("?")[0],
+        param: mangaParam,
+        detail_url: `${url}/${mangaParam}`,
+      });
+    });
+
+    let prev = "";
+    let next = "";
+
+    jsonResult = {
+      next_page: `${url}/daftar-komik?page=${parseInt(page) + 1}`,
+      prev_page:
+        parseInt(page) > 1 ? `${url}/daftar-komik?page=${parseInt(page) - 1}` : null,
+      data: mangaList,
+    };
+
+    return res.json(jsonResult);
+  } catch (err) {
+    /// Return error json data
+    jsonResult = {
+      data: {},
+      error: {
+        error: err.message ?? "Unknown Error",
+      },
+    };
+  }
+};
+
 module.exports.getMangaByParam = async (req, res) => {
   const { param } = req.params;
   const url = req.protocol + "://" + req.get("host") + req.baseUrl;
