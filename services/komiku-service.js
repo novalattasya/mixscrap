@@ -1,4 +1,5 @@
 const KomikuHelpers = require("../helper/komiku_helpers/komiku_helpers.js");
+const ProxyManager = require("./proxy-manager.js");
 const { default: axios } = require("axios");
 const cheerio = require("cheerio");
 
@@ -34,8 +35,10 @@ module.exports.getLatestManga = async (req, res) => {
 
   try {
     /// Get URL
+    const proxy = await ProxyManager.getRandomProxy();
+    console.log("Using proxy:", proxy ? `${proxy.host}:${proxy.port}` : "None");
     const { data } = await axios.get(crawlUrl, {
-      proxy: false,
+      proxy: proxy,
       headers: { referer: "https://komiku.org/" },
     });
 
@@ -141,8 +144,10 @@ module.exports.getDaftarKomik = async (req, res) => {
 
   try {
     /// Get URL
+    const proxy = await ProxyManager.getRandomProxy();
+    console.log("Using proxy:", proxy ? `${proxy.host}:${proxy.port}` : "None");
     const { data } = await axios.get(crawlUrl, {
-      proxy: false,
+      proxy: proxy,
       headers: { referer: "https://komiku.org/" },
     });
 
@@ -240,8 +245,10 @@ module.exports.getMangaByParam = async (req, res) => {
 
   try {
     /// Get URL
+    const proxy = await ProxyManager.getRandomProxy();
+    console.log("Using proxy:", proxy ? `${proxy.host}:${proxy.port}` : "None");
     const { data } = await axios.get(crawlUrl, {
-      proxy: false,
+      proxy: proxy,
       headers: { referer: "https://komiku.org/" },
     });
 
@@ -434,8 +441,10 @@ module.exports.getMangaChapterByParam = async (req, res) => {
 
   try {
     /// Get URL
+    const proxy = await ProxyManager.getRandomProxy();
+    console.log("Using proxy:", proxy ? `${proxy.host}:${proxy.port}` : "None");
     const { data } = await axios.get(crawlUrl, {
-      proxy: false,
+      proxy: proxy,
       headers: { referer: "https://komiku.org/" },
     });
 
