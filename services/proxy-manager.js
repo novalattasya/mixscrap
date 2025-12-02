@@ -29,6 +29,10 @@ class ProxyManager {
     }
 
     async getRandomProxy() {
+        if (process.env.USE_PROXY !== "true") {
+            return null;
+        }
+
         await this.fetchProxies();
 
         if (this.proxies.length === 0) {
